@@ -57,7 +57,7 @@ function GraficoPage() {
     return (
       <div className="min-h-screen mx-[40px] py-8 flex flex-col items-center justify-center">
         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#20E673] mb-4"></div>
-        <h1 className="text-xl font-medium text-gray-300">Carregando dados... ⏳</h1>
+        <h1 className="text-xl font-medium text-gray-300">Carregando dados... </h1>
       </div>
     );
   }

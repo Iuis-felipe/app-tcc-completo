@@ -1,40 +1,27 @@
-// src/dataService.ts
-import { RawTccData, DisplayTccItem, ThemeFrequency } from './types'; // Verifique se o caminho para types.ts está correto
+// src/dataService.ts - VERSÃO COMPLETA E ATUALIZADA
 
-const DATA_PATH_PREFIX = '/data/'; // Caminho base dentro da 'public' para os arquivos individuais
+import { RawTccData, ProcessedTccItem, DisplayTccItem, ThemeFrequency } from "./types";
+// MUDANÇA 1: Garantir que a função de normalização de temas seja importada do seu arquivo de utilitários.
+import { normalizeTheme } from "./utils/tccUtils";
 
-/**
- * Normaliza as palavras-chave, transformando-as em uma lista de strings.
- * Trata tanto listas de strings quanto strings separadas por vírgula.
- */
-function normalizeKeywords(keywords: string[] | string | undefined): string[] {
-  if (!keywords) {
-    return [];
-  }
-  if (Array.isArray(keywords)) {
-    return keywords.map(kw => kw.trim()).filter(kw => kw.length > 0);
-  }
-  return keywords.split(',').map(kw => kw.trim()).filter(kw => kw.length > 0);
-}
+const DATA_PATH_PREFIX = "/data/";
 
 /**
- * Carrega todos os dados dos TCCs.
- * Primeiro, busca a lista de arquivos da API /api/list-tccs,
- * depois carrega e processa cada arquivo TCC.
+ * Carrega todos os dados dos TCCs, aplicando a normalização de temas durante o processo.
  */
 export async function loadAllTccData(): Promise<{
+  allProcessedTccs: ProcessedTccItem[];
   allDisplayTccs: DisplayTccItem[];
   themeFrequencies: ThemeFrequency[];
 }> {
-  const allDisplayTccs: DisplayTccItem[] = [];
+  const allProcessedTccs: ProcessedTccItem[] = [];
 
   try {
-    // 1. Buscar a lista de nomes de arquivos da nossa API Route
-    const listApiResponse = await fetch('/api/list-tccs'); // Caminho para a API Route
+    const listApiResponse = await fetch("/api/list-tccs");
     if (!listApiResponse.ok) {
-      const errorData = await listApiResponse.json().catch(() => ({})); // Tenta pegar detalhes do erro da API
+      const errorData = await listApiResponse.json().catch(() => ({}));
       throw new Error(
-        `Falha ao buscar lista de arquivos TCC da API: ${listApiResponse.statusText} - ${errorData.details || ''}`
+        `Falha ao buscar lista de arquivos TCC da API: ${listApiResponse.statusText} - ${errorData.details || ""}`
       );
     }
 
@@ -45,41 +32,64 @@ export async function loadAllTccData(): Promise<{
     }
 
     if (!tccFiles || !Array.isArray(tccFiles) || tccFiles.length === 0) {
-      console.warn("Nenhum arquivo TCC retornado pela API ou a lista está vazia/inválida.");
-      return { allDisplayTccs: [], themeFrequencies: [] };
+      console.warn("Nenhum arquivo TCC retornado pela API.");
+      return { allProcessedTccs: [], allDisplayTccs: [], themeFrequencies: [] };
     }
 
-    // 2. Carregar cada arquivo TCC listado pela API
     for (const fileName of tccFiles) {
-      if (typeof fileName !== 'string') { // Verificação extra de tipo
+      if (typeof fileName !== "string") {
         console.warn(`Nome de arquivo inválido recebido da API: ${fileName}`);
         continue;
       }
-      const response = await fetch(`${DATA_PATH_PREFIX}${fileName}`); // Ex: /data/tcc1.json
+      const response = await fetch(`${DATA_PATH_PREFIX}${fileName}`);
       if (!response.ok) {
         console.warn(`Falha ao carregar o arquivo ${fileName}: ${response.statusText}`);
-        continue; // Pula para o próximo arquivo em caso de falha ao carregar um TCC específico
+        continue;
       }
       const data: RawTccData = await response.json();
 
-      const title = data['Título'] || "Sem título";
-      const summary = data['Resumo'] || "Sem resumo";
-      const keywordsRaw = data['Palavras-chave'];
+      // --- INÍCIO DA LÓGICA DE NORMALIZAÇÃO DE TEMAS ---
+      // MUDANÇA 2: Processamos as palavras-chave usando a nova função `normalizeTheme`.
+      const keywordsRaw = data["Palavras-chave"];
 
-      const themes = normalizeKeywords(keywordsRaw);
+      // Garante que temos um array para trabalhar, mesmo que a entrada seja uma string ou nula.
+      const keywordsAsArray = Array.isArray(keywordsRaw) ? keywordsRaw : (keywordsRaw || "").split(",");
 
-      for (const theme of themes) {
-        allDisplayTccs.push({
-          theme: theme,
-          title: title,
-          summary: summary,
-        });
-      }
+      // Aplica a normalização para cada tema, remove os que ficaram vazios e remove duplicatas no mesmo TCC.
+      const normalizedThemes = keywordsAsArray
+        .map((kw) => normalizeTheme(kw))
+        .filter(Boolean) // Remove strings vazias, caso a normalização resulte nisso.
+        .filter((theme, index, self) => self.indexOf(theme) === index); // Garante temas únicos por TCC.
+
+      // --- FIM DA LÓGICA DE NORMALIZAÇÃO ---
+
+      const processedItem: ProcessedTccItem = {
+        id: fileName,
+        title: data["Título"] || "Sem título",
+        author: data["Orientador(a)"] || "Não informado", // Futuramente, podemos aplicar normalizeAuthorName aqui também!
+        year: data["Ano de publicação"] || "N/A",
+        summary: data["Resumo"] || "Sem resumo",
+        // MUDANÇA 3: Usamos os temas já limpos e normalizados.
+        keywords: normalizedThemes,
+        themes: normalizedThemes,
+      };
+
+      allProcessedTccs.push(processedItem);
     }
 
-    // 3. Calcular frequência dos temas
+    // A partir daqui, o resto do código já funciona com os dados limpos, sem precisar de alterações.
+    // A contagem de frequência será naturalmente agrupada pelos temas normalizados.
+
+    const allDisplayTccs: DisplayTccItem[] = allProcessedTccs.flatMap((tcc) =>
+      tcc.themes.map((theme) => ({
+        theme: theme,
+        title: tcc.title,
+        summary: tcc.summary,
+      }))
+    );
+
     const themeCounts: Record<string, number> = {};
-    allDisplayTccs.forEach(tcc => {
+    allDisplayTccs.forEach((tcc) => {
       themeCounts[tcc.theme] = (themeCounts[tcc.theme] || 0) + 1;
     });
 
@@ -87,11 +97,9 @@ export async function loadAllTccData(): Promise<{
       .map(([tema, frequencia]) => ({ tema, frequencia }))
       .sort((a, b) => b.frequencia - a.frequencia);
 
-    return { allDisplayTccs, themeFrequencies };
-
+    return { allProcessedTccs, allDisplayTccs, themeFrequencies };
   } catch (error) {
     console.error("Erro geral ao carregar dados dos TCCs no dataService:", error);
-    // Em um cenário de produção, você poderia logar este erro para um serviço de monitoramento
-    return { allDisplayTccs: [], themeFrequencies: [] }; // Retorna vazio em caso de erro grave
+    return { allProcessedTccs: [], allDisplayTccs: [], themeFrequencies: [] };
   }
 }

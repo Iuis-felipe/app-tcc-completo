@@ -29,6 +29,8 @@ export interface DisplayTccItem {
 }
 
 export interface ThemeFrequency {
+  theme: string;
   tema: string;
+  count: number;
   frequencia: number;
 }

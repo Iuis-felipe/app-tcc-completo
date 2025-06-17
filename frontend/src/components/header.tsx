@@ -8,6 +8,10 @@ export default function Header() {
   const pathname = usePathname();
   const isSemanticSearch = pathname === "/busca-semantica";
   const isGraphPage = pathname === "/grafico";
+  const isYearAnalysis = pathname === "/analise-anual";
+  const isMostOrientadores = pathname === "/orientadores";
+  const isTendencias = pathname === "/tendencias";
+  const isProporcao = pathname === "/proporcao";
 
   return (
     <header className="mb-8">
@@ -33,8 +37,48 @@ export default function Header() {
               isGraphPage ? "text-[#20E673] font-medium" : "text-white hover:text-[#20E673]"
             }`}
           >
-            Gráfico
+            Mapa de Temas TCCs
             {isGraphPage && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#20E673]"></div>}
+          </Link>
+
+          <Link
+            href="/analise-anual"
+            className={`pb-2 relative transition-colors duration-200 ${
+              isYearAnalysis ? "text-[#20E673] font-medium" : "text-white hover:text-[#20E673]"
+            }`}
+          >
+            TCCs por ano
+            {isYearAnalysis && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#20E673]"></div>}
+          </Link>
+
+          <Link
+            href="/orientadores"
+            className={`pb-2 relative transition-colors duration-200 ${
+              isMostOrientadores ? "text-[#20E673] font-medium" : "text-white hover:text-[#20E673]"
+            }`}
+          >
+            Top 10 Orientadores
+            {isMostOrientadores && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#20E673]"></div>}
+          </Link>
+
+          <Link
+            href="/tendencias"
+            className={`pb-2 relative transition-colors duration-200 ${
+              isTendencias ? "text-[#20E673] font-medium" : "text-white hover:text-[#20E673]"
+            }`}
+          >
+            Evolução dos Temas
+            {isTendencias && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#20E673]"></div>}
+          </Link>
+
+          <Link
+            href="/proporcao"
+            className={`pb-2 relative transition-colors duration-200 ${
+              isProporcao ? "text-[#20E673] font-medium" : "text-white hover:text-[#20E673]"
+            }`}
+          >
+            Proporção dos Temas
+            {isProporcao && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#20E673]"></div>}
           </Link>
         </div>
 

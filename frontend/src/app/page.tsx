@@ -6,6 +6,7 @@ import { useState, FormEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
+import Header from "@/components/header";
 
 interface DocumentResult {
   title: string;
@@ -22,6 +23,7 @@ export default function Home() {
   const pathname = usePathname();
   const isSemanticSearch = pathname === "/" || pathname === "/busca-semantica";
   const isGraphPage = pathname === "/grafico";
+  const isYearAnalysis = pathname === "/analise-anual";
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [documents, setDocuments] = useState<DocumentResult[]>([]);
@@ -37,15 +39,12 @@ export default function Home() {
       setDocuments(response.data.relevant_documents);
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        // Tratamento específico para erros do Axios
         const serverMessage = error.response?.data?.detail;
         const axiosMessage = error.message;
         setAnswer(`Erro na requisição: ${serverMessage || axiosMessage}`);
       } else if (error instanceof Error) {
-        // Outros erros do tipo Error
         setAnswer(`Erro: ${error.message}`);
       } else {
-        // Erros não convencionais (strings, números, etc)
         setAnswer("Ocorreu um erro desconhecido");
       }
     } finally {
@@ -56,41 +55,12 @@ export default function Home() {
   return (
     <div className="mx-[40px] py-8 ">
       <header className="mb-8">
-        <div className="mb-6">
-          <Image
-            src="/images/logo-ufsc.svg"
-            alt="Logo UFSC"
-            width={120} // Ajuste conforme necessário
-            height={40} // Ajuste conforme necessário
-            className="object-contain" // Mantém a proporção
-          />
-        </div>
+        
 
         {/* Navegação com tabs */}
         <nav className="relative">
-          <div className="flex space-x-10">
-            <Link
-              href="/busca-semantica"
-              className={`pb-2 relative transition-colors duration-200 ${
-                isSemanticSearch ? "text-[#20E673] font-medium" : "text-white hover:text-[#20E673]"
-              }`}
-            >
-              Busca Semântica
-              {isSemanticSearch && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#20E673]"></div>}
-            </Link>
+            <Header/>
 
-            <Link
-              href="/grafico"
-              className={`pb-2 relative transition-colors duration-200 ${
-                isGraphPage ? "text-[#20E673] font-medium" : "text-white hover:text-[#20E673]"
-              }`}
-            >
-              Gráfico
-              {isGraphPage && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#20E673]"></div>}
-            </Link>
-          </div>
-
-          <div className="h-[1px] bg-[#20E673] mb-6"></div>
         </nav>
       </header>
       <h1 className="text-[24px] font-medium mb-2">Busca Semântica de TCCs utilizando IA</h1>
